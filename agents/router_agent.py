@@ -1,10 +1,12 @@
-from http.client import responses
-
+from typing import Dict, Any, List
 from langchain_core.messages import SystemMessage, HumanMessage
-from agents.base_agent import BaseAgent, _create_langfuse_callback
+from langchain.tools import Tool
+from agents.base_agent import BaseAgent
 from agents.agent_registry import AgentRegistry
-from utils import log_util
+from prompts.router import ROUTER_PROMPT
 from utils.user_info import User
+
+from utils import log_util
 
 
 def _get_expert_list() -> str:
@@ -17,84 +19,78 @@ def _get_expert_list() -> str:
     return "\n".join(expert_list)
 
 
+def _route_to_expert(query: str, expert_name: str, user_info: User) -> str:
+    """路由到指定的专家Agent"""
+    expert_agent = AgentRegistry.get_agent(expert_name)
+    if not expert_agent:
+        return f"抱歉，找不到名为 {expert_name} 的专家。"
+    return expert_agent.process_query(query, user_info)
+
+
+async def _route_to_expert_async(query: str, expert_name: str, user_info: User) -> str:
+    """异步路由到指定的专家Agent"""
+    expert_agent = AgentRegistry.get_agent(expert_name)
+    if not expert_agent:
+        return f"抱歉，找不到名为 {expert_name} 的专家。"
+    return await expert_agent.aprocess_query(query, user_info)
+
+
 class RouterAgent(BaseAgent):
-    """路由Agent，负责查询扩展、理解和意图识别，并将任务分发给专家Agent"""
+    """路由Agent，负责处理用户对话，并在需要时调用专家Agent"""
 
     def __init__(self, llm):
-        # 路由Agent的系统提示
+        # 创建路由工具
+        route_tool = Tool(
+            name="consult_expert",
+            func=_route_to_expert,
+            description=f"""当需要专业知识时，可以使用此工具咨询专家。
+            
+            可用的专家列表：
+            {_get_expert_list()}
+            
+            参数：
+            - query: 要咨询的具体问题
+            - expert_name: 要咨询的专家名称（必须从上面的列表中选择）
+            - user_info: 用户信息对象
+            
+            返回：专家的回答
+            
+            使用示例：
+            如果用户询问产品相关问题，可以调用 product_expert；
+            如果需要解析文件，可以调用 file_parser_agent；
+            如果需要格式化输出，可以调用 output_formatter_agent。
+            """
+        )
+        
         super().__init__(
             llm=llm,
             name="router_agent",
             agent_type="router",
-            description="负责理解用户查询并将其分发给合适的专家Agent处理",
+            description="负责处理用户对话，并在需要时调用专家Agent",
+            tools=[route_tool]
         )
 
-    def process_query(self, query, user_info: User):
-        """处理用户查询，包括意图识别和查询扩展"""
-
+    def process_query(self, query: str, user_info: User) -> str:
+        """处理用户查询"""
         try:
-            # 使用LLM进行意图识别和查询扩展
-            messages = [
-                SystemMessage(content="""分析以下用户查询，执行以下任务:
-                    1. 提取关键信息和真实意图
-                    2. 明确用户可能未表达但隐含的需求
-                    3. 总结用户实际想要解决的问题
-                    4. 下面是所有专家Agent的名称和功能描述，确定最合适的专家Agent，然后返回专家agent的名称（从以下列表中选择一个）: {expert_list}
-                """.format(expert_list=_get_expert_list())),
-                HumanMessage(content=query)
-            ]
-
-            response_text = self.run(messages, user_info)["messages"][-1].content
-
-            # 从响应中提取专家Agent名称和增强后的查询
-            expert_name = None
-            for name, agent in AgentRegistry.get_all_agents().items():
-                if agent.agent_type != "router" and name.lower() in response_text.lower():
-                    expert_name = name
-                    break
-
-            if not expert_name:
-                return "抱歉，我无法确定最合适的专家来处理您的查询。请尝试更详细地描述您的需求。"
-
-            # 直接调用选定的专家Agent
-            expert_agent = AgentRegistry.get_agent(expert_name)
-            return expert_agent.process_query(query, user_info)
-
+            messages = self._create_messages(query)
+            response = self.run(messages, user_info)
+            return response["messages"][-1].content
         except Exception as e:
-            log_util.log_exception(e)
-            raise
+            return f"处理请求时出错: {str(e)}"
 
-    async def aprocess_query(self, query, user_info: User):
+    async def aprocess_query(self, query: str, user_info: User) -> str:
         """异步处理用户查询"""
-
         try:
-            # 使用LLM进行意图识别和查询扩展
-            messages = [
-                SystemMessage(content="""分析以下用户查询，执行以下任务:
-                    1. 提取关键信息和真实意图
-                    2. 明确用户可能未表达但隐含的需求
-                    3. 总结用户实际想要解决的问题
-                    4. 下面是所有专家Agent的名称和功能描述，确定最合适的专家Agent，然后返回专家agent的名称（从以下列表中选择一个）: {expert_list}
-                """.format(expert_list=_get_expert_list())),
-                HumanMessage(content=query)
-            ]
-            responses = await self.arun(messages, user_info)
-            response_text = responses["messages"][-1].content
-
-            # 从响应中提取专家Agent名称和增强后的查询
-            expert_name = None
-            for name, agent in AgentRegistry.get_all_agents().items():
-                if agent.agent_type != "router" and name.lower() in response_text.lower():
-                    expert_name = name
-                    break
-
-            if not expert_name:
-                return "抱歉，我无法确定最合适的专家来处理您的查询。请尝试更详细地描述您的需求。"
-
-            # 直接调用选定的专家Agent
-            expert_agent = AgentRegistry.get_agent(expert_name)
-            return await expert_agent.aprocess_query(query, user_info)
-
+            messages = self._create_messages(query)
+            response = await self.arun(messages, user_info)
+            return response["messages"][-1].content
         except Exception as e:
-            log_util.log_exception(e)
-            raise
+            return f"处理请求时出错: {str(e)}"
+
+    def _create_messages(self, query: str) -> List[Dict[str, Any]]:
+        """创建消息列表"""
+        return [
+            SystemMessage(content=ROUTER_PROMPT),
+            HumanMessage(content=query)
+        ]

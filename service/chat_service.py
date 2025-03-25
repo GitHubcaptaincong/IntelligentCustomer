@@ -2,8 +2,8 @@
 import uuid
 
 from core.agent_system import AgentSystem
-from ..infrastructure.database import ConversationDB
-
+from infrastructure.database import ConversationDB
+import asyncio
 
 class ChatService:
     """聊天服务，处理用户交互"""
@@ -27,9 +27,25 @@ class ChatService:
             response=response
         )
 
+        print(response)
+        next = None
+        if next is not None:
+            print(next)
+            asyncio.run(chat_service.process_message(next, user_id, session_id))
+
+        history = chat_service.get_conversation_history(session_id)
+        print(history)
+
         return {"session_id": session_id, "response": response}
 
 
     def get_conversation_history(self, session_id, limit=10):
         """获取会话历史"""
         return self.conversation_db.get_conversation_history(session_id, limit)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    chat_service = ChatService()
+    asyncio.run(chat_service.process_message("你好"))

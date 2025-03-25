@@ -1,8 +1,13 @@
 # service/api.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 import uvicorn
 from .chat_service import ChatService
+import tempfile
+import os
+import uuid
+from typing import Optional
+from utils.user_info import User
 
 
 # 定义请求和响应模型
@@ -14,6 +19,12 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     session_id: str
     response: str
+
+
+class FileUploadResponse(BaseModel):
+    message: str
+    file_id: str
+    session_id: str
 
 
 # 创建应用
@@ -42,6 +53,45 @@ async def get_history(session_id: str, limit: int = 10):
         return {"session_id": session_id, "history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取历史记录出错: {str(e)}")
+
+
+@app.post("/upload", response_model=FileUploadResponse)
+async def upload_file(
+    file: UploadFile = File(...),
+    session_id: str = Form(None),
+    description: str = Form("这是一个上传的文件，请解析它的内容")
+):
+    """上传并处理文件"""
+    try:
+        # 创建临时文件
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        # 获取文件扩展名
+        file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
+        
+        # 构建处理消息
+        session_id = session_id or str(uuid.uuid4())
+        file_query = f"{description}。文件路径: {temp_file_path}，文件类型: {file_extension}，文件名: {file.filename}"
+        
+        # 使用聊天服务处理文件（会自动路由到FileParserAgent）
+        result = await chat_service.process_message(
+            user_query=file_query,
+            session_id=session_id
+        )
+
+        # 清理临时文件
+        os.unlink(temp_file_path)
+        
+        return FileUploadResponse(
+            message=result["response"],
+            file_id=session_id,  # 使用session_id作为文件标识
+            session_id=result["session_id"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件处理出错: {str(e)}")
 
 
 def start_api():

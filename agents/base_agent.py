@@ -1,7 +1,5 @@
 # agents/base_agent.py
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferMemory
+from langchain.agents import create_react_agent
 from langfuse.callback import CallbackHandler
 from langchain_openai import ChatOpenAI
 from abc import abstractmethod
@@ -39,7 +37,7 @@ class BaseAgent:
     def run(self, messages, user_info: User) -> str:
         """运行Agent"""
         try:
-            return self.agent_executor.invoke(input=messages,
+            return self.agent_executor.invoke(input={"messages": messages},
                                               config={"callbacks": [_create_langfuse_callback(user_info)],
                                                       "configurable": {"thread_id": user_info.session_id}}
                                               )

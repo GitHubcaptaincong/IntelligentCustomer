@@ -1,11 +1,10 @@
-import uuid
 from agents.agent_registry import AgentRegistry
 from agents.product_expert_agent import ProductExpertAgent
 from agents.router_agent import RouterAgent
 from agents.output_formatter_agent import OutputFormatterAgent
+from agents.file_parser_agent import FileParserAgent
 from customer_service_agent import CustomerServiceAgent
 from infrastructure.config import Config
-from infrastructure.database import ConversationDB
 from infrastructure.models import ModelProvider
 from knowledge_base.vector_store import VectorStoreFactory
 from tech_support_agent import TechSupportAgent
@@ -63,13 +62,20 @@ class AgentSystem:
                 llm=self.llm,
                 knowledge_base=self.knowledge_base
             ),
-            # 创建路由Agent
-            RouterAgent(
+
+            # 创建文件解析Agent
+            FileParserAgent(
+                llm=self.llm,
+                knowledge_base=self.knowledge_base
+            ),
+
+            # 创建输出格式化Agent
+            OutputFormatterAgent(
                 llm=self.llm
             ),
 
-            # # 创建输出格式化Agent
-            OutputFormatterAgent(
+            # 创建路由Agent
+            RouterAgent(
                 llm=self.llm
             )
         ]
@@ -89,15 +95,7 @@ class AgentSystem:
             # 使用路由Agent处理查询
             response = await router_agent.aprocess_query(query, User(user_id, session_id))
 
-            print(response)
             return response
         except Exception as e:
             log_exception(e)
             raise
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    agent_system = AgentSystem()
-    response = asyncio.run(agent_system.process_query("你好", "1"))

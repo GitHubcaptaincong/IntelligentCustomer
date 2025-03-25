@@ -8,7 +8,6 @@ class Config:
     """配置管理"""
 
     # 模型配置
-
     VECTOR_DB_TYPE = None
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     MODULE_URL = os.getenv("MODULE_URL")
