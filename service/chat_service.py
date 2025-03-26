@@ -27,15 +27,6 @@ class ChatService:
             response=response
         )
 
-        print(response)
-        next = None
-        if next is not None:
-            print(next)
-            asyncio.run(chat_service.process_message(next, user_id, session_id))
-
-        history = chat_service.get_conversation_history(session_id)
-        print(history)
-
         return {"session_id": session_id, "response": response}
 
 

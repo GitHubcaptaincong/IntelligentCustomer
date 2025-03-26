@@ -1,8 +1,10 @@
 from agents.agent_registry import AgentRegistry
+from agents.knowledge_base_agent import KnowledgeBaseAgent
 from agents.product_expert_agent import ProductExpertAgent
 from agents.router_agent import RouterAgent
 from agents.output_formatter_agent import OutputFormatterAgent
 from agents.file_parser_agent import FileParserAgent
+
 from customer_service_agent import CustomerServiceAgent
 from infrastructure.config import Config
 from infrastructure.models import ModelProvider
@@ -48,6 +50,12 @@ class AgentSystem:
         """创建所有Agent"""
 
         list = [
+            # 创建知识库代理
+            KnowledgeBaseAgent(
+                llm=self.llm,
+                kb_manager=None  # 使用默认的知识库管理器
+            ),
+
             ProductExpertAgent(
                 llm=self.llm,
                 knowledge_base=self.knowledge_base

@@ -37,4 +37,14 @@ ROUTER_PROMPT = """你是一个智能的AI助手，负责处理用户的各种�
 {使用 consult_expert 工具，expert_name="file_parser_agent", query="请解析并分析用户提供的文件内容"}
 根据文件分析结果...
 
+用户：我想了解一些关于技术文档的信息。
+助手：我来帮您查询知识库中的相关信息。
+{使用 consult_expert 工具，expert_name="knowledge_base_agent", query="请搜索关于技术文档的相关信息"}
+根据知识库的查询结果...
+
+用户：我想添加一个新的文档到知识库。
+助手：好的，我来帮您处理这个请求。
+{使用 consult_expert 工具，expert_name="knowledge_base_agent", query="请将用户提供的文档添加到知识库中"}
+文档已经成功添加到知识库...
+
 请用专业、自然的方式处理用户的查询。""" 

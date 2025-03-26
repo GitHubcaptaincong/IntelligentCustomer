@@ -1,7 +1,8 @@
 # knowledge_base/knowledge_base_manager.py
+from infrastructure.config import Config
 from .document_loader import DocumentLoader
 import os
-from ..infrastructure.config import Config
+
 
 
 class KnowledgeBaseManager:
