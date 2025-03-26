@@ -5,11 +5,11 @@ from agents.router_agent import RouterAgent
 from agents.output_formatter_agent import OutputFormatterAgent
 from agents.file_parser_agent import FileParserAgent
 
-from customer_service_agent import CustomerServiceAgent
+from agents.customer_service_agent import CustomerServiceAgent
 from infrastructure.config import Config
 from infrastructure.models import ModelProvider
 from knowledge_base.vector_store import VectorStoreFactory
-from tech_support_agent import TechSupportAgent
+from agents.tech_support_agent import TechSupportAgent
 from utils.log_util import log_exception
 from utils.user_info import User
 
@@ -25,7 +25,6 @@ class AgentSystem:
         self.langfuse_config = langfuse_config or {}
 
         # 初始化组件
-        self.llm = self._init_llm()
         self.knowledge_base = VectorStoreFactory.create_vector_store("chroma")
 
         # 清空之前的Agent注册表
@@ -34,10 +33,10 @@ class AgentSystem:
         # 创建所有Agent
         self._create_agents()
 
-    def _init_llm(self):
+    def _init_llm(self, model_type=None, model_name=None):
         """初始化LLM模型"""
-        model_type = self.model_config.get("type", Config.MODEL_TYPE)
-        model_name = self.model_config.get("name", Config.MODEL_NAME)
+        model_type = model_type or self.model_config.get("type", Config.MODEL_TYPE)
+        model_name = model_name or self.model_config.get("name", Config.MODEL_NAME)
         api_key = self.model_config.get("api_key", Config.OPENAI_API_KEY)
         model_url = self.model_config.get("model_url", Config.MODULE_URL)
 
@@ -49,42 +48,43 @@ class AgentSystem:
     def _create_agents(self):
         """创建所有Agent"""
 
+        common_llm = self._init_llm()
         list = [
             # 创建知识库代理
             KnowledgeBaseAgent(
-                llm=self.llm,
+                llm=common_llm,
                 kb_manager=None  # 使用默认的知识库管理器
             ),
 
             ProductExpertAgent(
-                llm=self.llm,
+                llm=common_llm,
                 knowledge_base=self.knowledge_base
             ),
 
             TechSupportAgent(
-                llm=self.llm,
+                llm=common_llm,
                 knowledge_base=self.knowledge_base
             ),
 
             CustomerServiceAgent(
-                llm=self.llm,
+                llm=common_llm,
                 knowledge_base=self.knowledge_base
             ),
 
             # 创建文件解析Agent
             FileParserAgent(
-                llm=self.llm,
+                llm=common_llm,
                 knowledge_base=self.knowledge_base
             ),
 
             # 创建输出格式化Agent
             OutputFormatterAgent(
-                llm=self.llm
+                llm=common_llm
             ),
 
-            # 创建路由Agent
+            # 使用本地微调的模型，创建路由Agent
             RouterAgent(
-                llm=self.llm
+                llm=self._init_llm(Config.CHAT_MODEL_TYPE, Config.CHAT_MODEL_NAME)
             )
         ]
 

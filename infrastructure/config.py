@@ -14,6 +14,10 @@ class Config:
     MODEL_TYPE = os.getenv("MODEL_TYPE", "openai")  # openai 或 local
     MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
+    # 对话模型
+    CHAT_MODEL_TYPE = os.getenv("CHAT_MODEL_TYPE")
+    CHAT_MODEL_NAME = os.getenv("CHAT_MODEL_NAME")
+
     # 向量模型
     EMBEDDING_TYPE = "DASHSCOPE"
     DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")

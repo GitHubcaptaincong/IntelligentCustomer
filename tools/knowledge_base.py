@@ -2,7 +2,6 @@
 from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.tools import StructuredTool
 from langchain_openai import ChatOpenAI
-from typing import Any, Optional, Callable
 
 
 def create_knowledge_base_tool(knowledge_base, category=None):

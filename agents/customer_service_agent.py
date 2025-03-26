@@ -1,5 +1,3 @@
-import uuid
-
 from agents.base_agent import BaseAgent
 from tools.knowledge_base import create_knowledge_base_tool
 from tools.ticket_creator import create_ticket_creator_tool
