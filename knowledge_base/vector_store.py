@@ -86,6 +86,14 @@ class ChromaVectorStore(BaseVectorStore):
         if not self.vector_store:
             return []
 
+        # 确保过滤器格式正确
+        if filter and isinstance(filter, dict) and "metadata" not in filter:
+            # 转换为Chroma接受的过滤器格式
+            metadata_filter = {}
+            for key, value in filter.items():
+                metadata_filter[key] = {"$eq": value}
+            filter = {"metadata": metadata_filter}
+
         return self.vector_store.similarity_search(
             query=query,
             k=top_k,

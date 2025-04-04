@@ -2,12 +2,11 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 import uvicorn
-from .chat_service import ChatService
 import tempfile
 import os
 import uuid
-from typing import Optional
-from utils.user_info import User
+
+from service.chat_service import ChatService
 
 
 # 定义请求和响应模型

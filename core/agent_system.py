@@ -9,7 +9,6 @@ from agents.customer_service_agent import CustomerServiceAgent
 from infrastructure.config import Config
 from infrastructure.models import ModelProvider
 from knowledge_base.vector_store import VectorStoreFactory
-from agents.tech_support_agent import TechSupportAgent
 from utils.log_util import log_exception
 from utils.user_info import User
 
@@ -57,11 +56,6 @@ class AgentSystem:
             ),
 
             ProductExpertAgent(
-                llm=common_llm,
-                knowledge_base=self.knowledge_base
-            ),
-
-            TechSupportAgent(
                 llm=common_llm,
                 knowledge_base=self.knowledge_base
             ),

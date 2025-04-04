@@ -22,21 +22,21 @@ def create_ticket_creator_tool(name="ticket_creator", description="创建客服�
 
 class TicketCreatorTool:
     """工单创建工具类（为了保持向后兼容）"""
-    
+
     def __init__(self, name="ticket_creator", description="创建客服工单，用于记录客户的投诉或复杂问题"):
         """初始化工单创建工具"""
         self.tool = create_ticket_creator_tool(name, description)
         self.name = self.tool.name
         self.description = self.tool.description
-        
+
     def run(self, problem_description: str) -> str:
         """运行工具"""
         return self.tool.run(problem_description)
-        
+
     async def arun(self, problem_description: str) -> str:
         """异步运行工具"""
         return await self.tool.arun(problem_description)
-        
+
     def __getattr__(self, name):
         """转发未定义的属性到内部工具"""
         return getattr(self.tool, name) 

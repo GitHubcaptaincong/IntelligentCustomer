@@ -2,7 +2,6 @@ from typing import List, Dict, Any
 from .base_agent import BaseAgent
 from utils.user_info import User
 from tools.file_parser import create_file_parser_tool
-from tools.knowledge_base import create_knowledge_base_tool
 from langchain.tools import StructuredTool
 from langchain_core.messages import SystemMessage, HumanMessage
 from knowledge_base.knowledge_base_manager import KnowledgeBaseManager
